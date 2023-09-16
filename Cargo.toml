@@ -16,6 +16,7 @@ serde = "1.0.136"
 serde_derive = "1.0.136"
 colored = "2.0.0"
 home = "0.5.5"
+config = "0.13.3"
 
 [dev-dependencies]
 assert_cmd = "2.0.11"
