@@ -1,0 +1,12 @@
+[tool]
+[tool.spaghetti]
+source = "~/Documents/config/settings.json"
+target = "~"
+
+[tool.tmux]
+source = "~/Documents/config/.tmux.conf"
+target = "~"
+
+[tool.bootstrap]
+source = "/home/timon/Documents/config/bootstrap.sh"
+target = "~"
