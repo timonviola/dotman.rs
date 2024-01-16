@@ -5,7 +5,8 @@
 Sync configs semi-automatically.
 
 ## Why?
-- I want to learn rust
+- To learn rust
+- fun
 - No more manual managing of vim, tmux, git aliases etc. between computers.
 
 # How to use
@@ -75,7 +76,7 @@ The soft link serves as a pointer to another file without the file's actual cont
 # Roadmap
 ## V1.0.0
 - [ ] implement symlink feature
-    - remove MyPath bonanza to use onlf PathBuf
+    - remove MyPath, use onlf PathBuf
     - implement tests
 - [ ] subcommands rework:
     - return Result

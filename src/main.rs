@@ -25,7 +25,7 @@ fn expand_home_path(path: &String) -> std::path::PathBuf {
     return std::path::PathBuf::from(&path.replace(HOME_SYMBOL, home_path));
 }
 
-/// get default config file location whicht is $HOME/.dotman.toml
+/// get default config file location which is $HOME/.dotman.toml
 fn default_config_file() -> std::path::PathBuf {
     let mut path = home::home_dir().unwrap();
     path.push(".dotman.toml");
