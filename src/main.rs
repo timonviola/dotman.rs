@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use clap_verbosity_flag::{Verbosity, InfoLevel};
 use serde::de::{self, Deserializer, Visitor};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -7,11 +8,11 @@ use std::path::PathBuf;
 //use error::{Error, Result};
 use colored::*;
 use home;
-use serde_derive::Deserialize;
 use std::fmt;
 use std::fs;
 use std::os::unix::fs::symlink;
 use toml;
+use log::{info, debug};
 
 const HOME_SYMBOL: char = '~';
 
@@ -24,7 +25,7 @@ fn expand_home_path(path: &String) -> std::path::PathBuf {
     return std::path::PathBuf::from(&path.replace(HOME_SYMBOL, home_path));
 }
 
-/// get default config file location whicht is $HOME/.dotman.toml
+/// get default config file location which is $HOME/.dotman.toml
 fn default_config_file() -> std::path::PathBuf {
     let mut path = home::home_dir().unwrap();
     path.push(".dotman.toml");
@@ -87,11 +88,17 @@ impl fmt::Display for MyPath {
 #[derive(Parser)]
 #[command(author, version, about, long_about=None, propagate_version = true)]
 struct Cli {
+    // config file
     #[arg(short,
           long,
           value_name = "FILE",
           default_value = default_config_file().into_os_string())]
     file: std::path::PathBuf,
+
+    // log-level
+    #[command(flatten)]
+    verbose: Verbosity<InfoLevel>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -125,6 +132,7 @@ impl Tool {
     /// convinience method around `fs::symlink`
     fn create_link(&self) -> Result<(), Box<dyn std::error::Error>> {
         symlink(&self.source.path, &self.target.path)?;
+        debug!("created link: {:#?} -> {:#?}",&self.source.path, &self.target.path); 
         Ok(())
     }
 }
@@ -154,8 +162,12 @@ fn is_valid_path(path: &MyPath) -> ColoredString {
 }
 
 fn main() -> Result<()> {
+    //
     // `parse` needs to be calle in main
     let args = Cli::parse();
+    env_logger::Builder::new()
+        .filter_level(args.verbose.log_level_filter())
+        .init();
 
     let content = std::fs::read_to_string(&args.file)
         .with_context(|| format!("could not read file `{}`", args.file.display()))?;
@@ -165,15 +177,15 @@ fn main() -> Result<()> {
 
     match &args.command {
         Commands::Link {} => {
-            println!("original dotman behaviour");
+            info!("original dotman behaviour");
             link(&config);
         }
         Commands::Purge {} => {
-            println!("destroying links");
+            info!("destroying links");
             purge(&config);
         }
         Commands::Show {} => {
-            println!("show links");
+            info!("show links");
             show(&config);
         }
     }
@@ -186,6 +198,7 @@ fn purge(config: &Outer) {
     for (_key, val) in &config.tool {
         if val.target.exists() {
             val.target.remove_file();
+            debug!("removed {:?}", val.target);
         }
     }
 }
@@ -194,7 +207,11 @@ fn purge(config: &Outer) {
 fn link(config: &Outer) {
     // for each key: validate and create link
     for (_key, val) in &config.tool {
-        val.validate();
+        match val.validate() {
+            true => info!("File exists {:#?}. Skipping.",_key),
+            false => debug!("created link: {:#?} -> {:#?}",_key, val),
+        }
+
         let _ = val.create_link();
     }
 }
@@ -202,7 +219,7 @@ fn link(config: &Outer) {
 /// Display the content of each file *nicely*
 fn show(config: &Outer) {
     for (key, val) in &config.tool {
-        println!("[{key}]\n\t{val}");
+        info!("[{key}]\n\t{val}");
     }
 }
 
@@ -228,3 +245,4 @@ mod tests {
         );
     }
 }
+

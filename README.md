@@ -2,19 +2,21 @@
 
 # DOTMAN (yet another dotfile manager)
 
-purpose of this project is to learn rust
+Sync configs semi-automatically.
+
 ## Why?
-- I want to learn rust/crablang
-- I am tired of manually managing my vim, tmux, git aliases etc. between computers.
+- To learn rust
+- fun
+- No more manual managing of vim, tmux, git aliases etc. between computers.
 
 # How to use
 create a dotman.toml file under your $HOME directory. (Is you want to change the location/name of this file change `DOTMAN_HOME` env var.)
 
 
 # What it does?
-Centralizes - or more precisely decentralizes your config files to store them in a single vsc repo.
+Centralizes your config files to store them in a single folder (repo).
 
-`dotman` goes through the `dotman.toml` file entries and creates simbolic links is your file system.
+`dotman` goes through the `dotman.toml` file entries and creates symbolic links is your file system.
 
 # What it does NOT?
 - no git workflow automation
@@ -74,7 +76,7 @@ The soft link serves as a pointer to another file without the file's actual cont
 # Roadmap
 ## V1.0.0
 - [ ] implement symlink feature
-    - remove MyPath bonanza to use onlf PathBuf
+    - remove MyPath, use onlf PathBuf
     - implement tests
 - [ ] subcommands rework:
     - return Result
