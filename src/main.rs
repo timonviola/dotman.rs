@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use clap_verbosity_flag::{Verbosity, InfoLevel};
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 use serde::de::{self, Deserializer, Visitor};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -8,11 +8,11 @@ use std::path::PathBuf;
 //use error::{Error, Result};
 use colored::*;
 use home;
+use log::{debug, info};
 use std::fmt;
 use std::fs;
 use std::os::unix::fs::symlink;
 use toml;
-use log::{info, debug};
 
 const HOME_SYMBOL: char = '~';
 
@@ -35,6 +35,12 @@ fn default_config_file() -> std::path::PathBuf {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct MyPath {
     path: std::path::PathBuf,
+}
+
+impl MyPath {
+    fn capacity(&self) -> usize {
+        self.path.capacity()
+    }
 }
 
 impl<'de> Deserialize<'de> for MyPath {
@@ -118,6 +124,21 @@ struct Outer {
     tool: HashMap<String, Tool>,
 }
 
+impl Outer {
+    /// return the max format width
+    fn max(&self) -> usize {
+        let mut _i = 0usize;
+        for (_, val) in &self.tool {
+            _i = if _i < val.source.capacity() {
+                val.source.capacity()
+            } else {
+                _i
+            };
+        }
+        return _i;
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct Tool {
     source: MyPath,
@@ -132,21 +153,35 @@ impl Tool {
     /// convinience method around `fs::symlink`
     fn create_link(&self) -> Result<(), Box<dyn std::error::Error>> {
         symlink(&self.source.path, &self.target.path)?;
-        debug!("created link: {:#?} -> {:#?}",&self.source.path, &self.target.path); 
+        debug!(
+            "created link: {:#?} -> {:#?}",
+            &self.source.path, &self.target.path
+        );
         Ok(())
     }
-}
 
+    /// get formatted, table like representation
+    fn get_fromatted(&self, width: &usize) -> String {
+        format!(
+            "{:.<width$} {:>3} -> {:.<40} {:.>3}",
+            format!("{}", self.source),
+            format!("{}", is_valid_path(&self.source)),
+            format!("{}", self.target),
+            format!("{}", is_valid_path(&self.target)),
+            width = width
+        )
+    }
+}
 /// Pretty printing for config entries
 impl fmt::Display for Tool {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{} {} -> {} {}",
-            format!("{:44}", self.source),
-            format!("{:3}", is_valid_path(&self.source)),
-            self.target,
-            format!("{:3}", is_valid_path(&self.target))
+            "{:.<68} {:>3} -> {:.<40} {:.>3}",
+            format!("{}", self.source),
+            format!("{}", is_valid_path(&self.source)),
+            format!("{}", self.target),
+            format!("{}", is_valid_path(&self.target))
         )
     }
 }
@@ -208,8 +243,8 @@ fn link(config: &Outer) {
     // for each key: validate and create link
     for (_key, val) in &config.tool {
         match val.validate() {
-            true => info!("File exists {:#?}. Skipping.",_key),
-            false => debug!("created link: {:#?} -> {:#?}",_key, val),
+            true => info!("File exists {:#?}. Skipping.", _key),
+            false => debug!("created link: {:#?} -> {:#?}", _key, val),
         }
 
         let _ = val.create_link();
@@ -218,8 +253,11 @@ fn link(config: &Outer) {
 
 /// Display the content of each file *nicely*
 fn show(config: &Outer) {
+    let _width = config.max();
     for (key, val) in &config.tool {
-        info!("[{key}]\n\t{val}");
+        debug!("[{key}]");
+        let _v = val.get_fromatted(&_width);
+        print!("\n{_v}");
     }
 }
 
@@ -245,4 +283,3 @@ mod tests {
         );
     }
 }
-
