@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
@@ -6,7 +8,7 @@ use log::{debug, info};
 use toml;
 
 use dotman::format::{get_table, add_row};
-use dotman::serde::{is_valid_path, Outer};
+use dotman::serde::{is_valid_path, Outer, Tool};
 
 /// get default config file location which is $HOME/.dotman.toml
 fn default_config_file() -> std::path::PathBuf {
@@ -63,7 +65,34 @@ fn main() -> Result<()> {
         .with_context(|| format!("could not read file `{}`", args.file.display()))?;
     // TOML handling
 
-    let config: Outer = toml::from_str(&content)?;
+    //TODO: refactor this
+    let config = if args.tag.is_none() {
+        toml::from_str(&content)?
+    } else {
+        let _config: Outer = toml::from_str(&content)?;
+        // pop values from hash map &args.tag.unwrap()
+        let mut m: HashMap<String, Tool> = HashMap::new();
+
+        for (k,v) in _config.tool {
+            m.insert(k, v);
+        }
+        // wholly molly this is bad
+        let t = &args.tag.unwrap().clone();
+        println!("{:?}", t);
+
+        m.retain(|_k, _v| { 
+            //_v.tag.contains(t)
+            match &_v.tag {
+                None => false,
+                Some(tag) => tag.contains(t)
+            }
+        }
+
+        );
+        let config: Outer = Outer { tool: m };
+        config
+    };
+
 
     match &args.command {
         Commands::Link {} => {
