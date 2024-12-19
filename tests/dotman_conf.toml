@@ -10,3 +10,9 @@ target = "~"
 [tool.bootstrap]
 source = "/home/timon/Documents/config/bootstrap.sh"
 target = "~"
+
+
+[tool.cake]
+tag = "group1"
+source = "/home/timon/Documents/config/bootstrap.sh"
+target = "~"

@@ -7,7 +7,7 @@ Sync configs semi-automatically.
 ## Why?
 - To learn rust
 - fun
-- No more manual managing of vim, tmux, git aliases etc. between computers.
+- No more manual managing of vim, tmux, git aliases etc. between machines and OSes.
 
 # How to use
 create a dotman.toml file under your $HOME directory. (Is you want to change the location/name of this file change `DOTMAN_HOME` env var.)
@@ -45,8 +45,8 @@ dotman works with symlinks, a dangling link is when the file referenced by the s
 # Development
 
 ## v1.0.0
-- [ ] read toml file
-- [ ] create symbolic links (from toml definition)
+- [x] read toml file
+- [x] create symbolic links (from toml definition)
 
 # Symlinks
 
@@ -55,11 +55,11 @@ dotman provides you the option to use hardlinks and softlinks (default). The fol
 ## What are symlinks?
 Symlinks can be interpreted as pointers on the filesystem. Instead of copying the contents of the file we just point to them.
 
-You can find out more about symlinks on the (manpage)[https://linux.die.net/man/7/symlink].
+You can find out more about symlinks on the [manpage](https://linux.die.net/man/7/symlink).
 
 ## Softlinks vs hardlinks
 __you should really read the manpage, it's better written than this__
-A Hard Link is a copy of the original file that serves as a pointer to the same. file, allowing it to be accessed even if the original file is deleted or relocated. Unlike soft links, modifications to hard-linked files affect other files, and the hard link remains active even if the source file is deleted from the system.
+A Hard Link is a copy of the original file that serves as a pointer to the same file, allowing it to be accessed even if the original file is deleted or relocated. Unlike soft links, modifications to hard-linked files affect other files, and the hard link remains active even if the source file is deleted from the system.
 
 The soft link serves as a pointer to another file without the file's actual contents. It allows the users to delete or the soft links without affecting the original file's contents. You may also use soft links to link files across the file system. Generally, the soft link is an alias for the original file or directory.
 
