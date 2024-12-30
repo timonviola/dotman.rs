@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use home;
-use log::{debug, info};
+use log::{debug, info, warn};
 use toml;
 
 use dotman::format::{get_table, add_row};
@@ -53,9 +53,9 @@ enum Commands {
     Show {},
 }
 
-fn main() -> Result<()> {
+pub fn main() -> Result<()> {
     //
-    // `parse` needs to be calle in main
+    // `parse` needs to be called in main
     let args = Cli::parse();
     env_logger::Builder::new()
         .filter_level(args.verbose.log_level_filter())
@@ -63,34 +63,36 @@ fn main() -> Result<()> {
 
     let content = std::fs::read_to_string(&args.file)
         .with_context(|| format!("could not read file `{}`", args.file.display()))?;
+    
     // TOML handling
-
-    //TODO: refactor this
-    let config = if args.tag.is_none() {
-        toml::from_str(&content)?
-    } else {
-        let _config: Outer = toml::from_str(&content)?;
-        // pop values from hash map &args.tag.unwrap()
-        let mut m: HashMap<String, Tool> = HashMap::new();
-
-        for (k,v) in _config.tool {
-            m.insert(k, v);
-        }
-        // wholly molly this is bad
-        let t = &args.tag.unwrap().clone();
-        println!("{:?}", t);
-
-        m.retain(|_k, _v| { 
-            //_v.tag.contains(t)
-            match &_v.tag {
-                None => false,
-                Some(tag) => tag.contains(t)
+    let config = match args.tag {
+        None => {
+            match toml::from_str(&content) {
+                Ok(content) => content,
+                Err(error) => panic!("Problem reading the contents of the configuration file: {error:?}"),
             }
         }
+        Some(ref t) => {
+            let _config: Outer = toml::from_str(&content)?;
+            let mut m: HashMap<String, Tool> = _config.tool;
+            debug!("Retaining tag: {:?}", t);
+            m.retain(|_k, _v| { 
+                match &_v.tag {
+                    None => false,
+                    Some(tag) => tag.contains(t)
+                }
+            });
+            let config: Outer = Outer { tool: m };
+            config
+        }
+    };
 
-        );
-        let config: Outer = Outer { tool: m };
-        config
+    match &config.tool.is_empty() {
+        true => {
+            warn!("No configuration entries. Tags: {:?}\nExiting.", &args.tag);
+            return Ok(());
+        }
+        false => (),
     };
 
 
