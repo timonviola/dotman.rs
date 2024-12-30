@@ -7,7 +7,7 @@ use home;
 use log::{debug, info, warn};
 use toml;
 
-use dotman::format::{get_table, add_row};
+use dotman::format::{add_row, get_table};
 use dotman::serde::{is_valid_path, Outer, Tool};
 
 /// get default config file location which is $HOME/.dotman.toml
@@ -63,24 +63,22 @@ pub fn main() -> Result<()> {
 
     let content = std::fs::read_to_string(&args.file)
         .with_context(|| format!("could not read file `{}`", args.file.display()))?;
-    
+
     // TOML handling
     let config = match args.tag {
-        None => {
-            match toml::from_str(&content) {
-                Ok(content) => content,
-                Err(error) => panic!("Problem reading the contents of the configuration file: {error:?}"),
+        None => match toml::from_str(&content) {
+            Ok(content) => content,
+            Err(error) => {
+                panic!("Problem reading the contents of the configuration file: {error:?}")
             }
-        }
+        },
         Some(ref t) => {
             let _config: Outer = toml::from_str(&content)?;
             let mut m: HashMap<String, Tool> = _config.tool;
             debug!("Retaining tag: {:?}", t);
-            m.retain(|_k, _v| { 
-                match &_v.tag {
-                    None => false,
-                    Some(tag) => tag.contains(t)
-                }
+            m.retain(|_k, _v| match &_v.tag {
+                None => false,
+                Some(tag) => tag.contains(t),
             });
             let config: Outer = Outer { tool: m };
             config
@@ -94,7 +92,6 @@ pub fn main() -> Result<()> {
         }
         false => (),
     };
-
 
     match &args.command {
         Commands::Link {} => {
@@ -146,11 +143,12 @@ fn show(config: &Outer) {
             None => &String::from(""),
             Some(val) => val,
         };
-        add_row(&mut table, 
-                key,
-                _tag,
-                &is_valid_path(&val.target),
-                &val.source,
+        add_row(
+            &mut table,
+            key,
+            _tag,
+            &is_valid_path(&val.target),
+            &val.source,
         );
     }
     print!("\n");

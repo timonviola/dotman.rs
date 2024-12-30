@@ -4,7 +4,11 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crate::serde::MyPath;
 pub fn add_to_waitlist() {}
 
-const ORANGE:Color = Color::Rgb { r: 254, g: 138, b: 24 };
+const ORANGE: Color = Color::Rgb {
+    r: 254,
+    g: 138,
+    b: 24,
+};
 
 /// Create terminal table with header
 pub fn get_table() -> Table {
