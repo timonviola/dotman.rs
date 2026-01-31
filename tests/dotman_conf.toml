@@ -16,3 +16,13 @@ target = "~"
 tag = "group1"
 source = "/home/timon/Documents/config/bootstrap.sh"
 target = "~"
+
+[tool.maccaroon]
+tag = "group1,red"
+source = "/home/timon/Documents/config/bootstrap.sh"
+target = "~"
+
+[tool.biscuit]
+tag = "blue,red"
+source = "/home/timon/Documents/config/bootstrap.sh"
+target = "~"

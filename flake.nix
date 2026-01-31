@@ -5,51 +5,22 @@
 
   # Flake inputs
   inputs = {
-    flake-schemas.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/*";
-
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/*";
-
-    rust-overlay = {
-      url = "https://flakehub.com/f/oxalica/rust-overlay/0.1.*";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
-
   # Flake outputs that other flakes can use
-  outputs = { self, flake-schemas, nixpkgs, rust-overlay }:
+  outputs = { self, nixpkgs }:
     let
       # Nixpkgs overlays
-      overlays = [
-        rust-overlay.overlays.default
-        (final: prev: {
-          rustToolchain = final.rust-bin.stable.latest.default.override { extensions = [ "rust-src"]; };
-        })
-      ];
-
       # Helpers for producing system-specific outputs
-      supportedSystems = [ "aarch64-darwin" ];
-      forEachSupportedSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f {
-        pkgs = import nixpkgs { inherit overlays system; };
-      });
+      supportedSystems = [ "aarch64-darwin" "x86-64-linux"];
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      pkgsFor = nixpkgs.legacyPackages;
     in {
-      # Schemas tell Nix about the structure of your flake's outputs
-      schemas = flake-schemas.schemas;
-
-      # Development environments
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell {
-          # Pinned packages available in the environment
-          packages = with pkgs; [
-            rustToolchain
-            rust-analyzer
-            nixpkgs-fmt
-          ];
-
-          # Environment variables
-          env = {
-            RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
-          };
-        };
-      });
+      packages = forAllSystems (system: {
+                default = pkgsFor.${system}.callPackage ./default.nix {  };
+        });
+      devShells = forAllSystems (system :{
+                default = pkgsFor.${system}.callPackage ./shell.nix {  };
+        });
     };
 }

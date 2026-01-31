@@ -32,12 +32,13 @@ struct Cli {
     verbose: Verbosity<InfoLevel>,
 
     // tag to apply
-    #[arg(short,
-          long,
-          help = "Use tags to apply links selectively",
-          value_name = "TAG",
-          default_value = None)]
-    tag: Option<String>,
+    #[arg(
+        short,
+        long,
+        help = "Use tags to apply links selectively. Comma-separated tags require ALL to match (AND). Multiple --tag flags match ANY (OR).",
+        value_name = "TAG"
+    )]
+    tag: Vec<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -65,24 +66,33 @@ pub fn main() -> Result<()> {
         .with_context(|| format!("could not read file `{}`", args.file.display()))?;
 
     // TOML handling
-    let config = match args.tag {
-        None => match toml::from_str(&content) {
+    let config = if args.tag.is_empty() {
+        match toml::from_str(&content) {
             Ok(content) => content,
             Err(error) => {
                 panic!("Problem reading the contents of the configuration file: {error:?}")
             }
-        },
-        Some(ref t) => {
-            let _config: Outer = toml::from_str(&content)?;
-            let mut m: HashMap<String, Tool> = _config.tool;
-            debug!("Retaining tag: {:?}", t);
-            m.retain(|_k, _v| match &_v.tag {
-                None => false,
-                Some(tag) => tag.contains(t),
-            });
-            let config: Outer = Outer { tool: m };
-            config
         }
+    } else {
+        let _config: Outer = toml::from_str(&content)?;
+        let mut m: HashMap<String, Tool> = _config.tool;
+        let tag_groups: Vec<std::collections::HashSet<&str>> = args
+            .tag
+            .iter()
+            .map(|t| t.split(',').map(|s| s.trim()).collect())
+            .collect();
+        debug!("Retaining tag groups (OR): {:?}", tag_groups);
+        m.retain(|_k, _v| match &_v.tag {
+            None => false,
+            Some(item_tag) => {
+                let item_tags: std::collections::HashSet<&str> =
+                    item_tag.split(',').map(|s| s.trim()).collect();
+                tag_groups
+                    .iter()
+                    .any(|required| required.is_subset(&item_tags))
+            }
+        });
+        Outer { tool: m }
     };
 
     match &config.tool.is_empty() {
